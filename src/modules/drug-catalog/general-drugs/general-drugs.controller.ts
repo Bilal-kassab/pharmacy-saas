@@ -14,7 +14,13 @@ import {
   CreateGeneralDrugDto,
   UpdateGeneralDrugDto,
 } from '../dto/general-drug.dto';
+import { Auth } from '../../../iam/authentication/decorators/auth.decorator';
+import { AuthType } from '../../../iam/authentication/enums/auth-type.enum';
+import { AccountType } from '../../../generated/prisma/enums';
+import { Roles } from '../../../iam/authorization/decorators/roles.decorator';
 
+@Auth(AuthType.Bearer)
+@Roles(AccountType.ADMIN, AccountType.MEDICAL_TEAM)
 @Controller('general-drugs')
 export class GeneralDrugsController {
   constructor(private readonly generalDrugsService: GeneralDrugsService) {}
@@ -24,6 +30,7 @@ export class GeneralDrugsController {
     return this.generalDrugsService.create(dto);
   }
 
+  @Get()
   async findAll(
     @Query('page') page?: string,
     @Query('limit') limit?: string,

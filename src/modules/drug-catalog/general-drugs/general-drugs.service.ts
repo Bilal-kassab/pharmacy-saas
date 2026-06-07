@@ -23,11 +23,11 @@ export class GeneralDrugsService {
         ingredient: true,
       },
     },
-    categories: {
-      include: {
-        category: true,
-      },
-    },
+    // categories: {
+    //   include: {
+    //     category: true,
+    //   },
+    // },
   } satisfies Prisma.GeneralDrugInclude;
 
   async create(dto: CreateGeneralDrugDto) {
@@ -128,7 +128,7 @@ export class GeneralDrugsService {
     const [drugs, total] = await Promise.all([
       this.prisma.generalDrug.findMany({
         where,
-        include: this.includeRelations,
+        // include: this.includeRelations,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
@@ -157,7 +157,14 @@ export class GeneralDrugsService {
       where: {
         generalDrugId: id,
       },
-      include: this.includeRelations,
+      include: {
+        ...this.includeRelations,
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!drug) {
@@ -172,7 +179,14 @@ export class GeneralDrugsService {
       where: {
         barcode,
       },
-      include: this.includeRelations,
+      include: {
+        ...this.includeRelations,
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!drug) {

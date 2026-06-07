@@ -19,7 +19,7 @@ import { Roles } from '../../../iam/authorization/decorators/roles.decorator';
 import { AccountType } from '../../../generated/prisma/enums';
 import { AuthType } from '../../../iam/authentication/enums/auth-type.enum';
 @Auth(AuthType.Bearer)
-@Roles(AccountType.ADMIN, AccountType.MEDICAL_TEAM)@Controller('dosage-forms')
+@Roles(AccountType.ADMIN, AccountType.MEDICAL_TEAM)
 @Controller('drug-categories')
 export class DrugCategoriesController {
   constructor(private readonly drugCategoriesService: DrugCategoriesService) {}
