@@ -13,6 +13,12 @@ import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { DrugCatalogModule } from './modules/drug-catalog/drug-catalog.module';
 import { IamModule } from './iam/iam.module';
+import { PurchaseOrderItemModule } from './modules/purchase-order-item/purchase-order-item.module';
+import { PurchaseOrderModule } from './modules/purchase-order/purchase-order.module';
+import { SupplierModule } from './modules/supplier/supplier.module';
+import { SupplierInvoiceModule } from './modules/supplier-invoice/supplier-invoice.module';
+import { SupplierInvoiceItemModule } from './modules/supplier-invoice-item/supplier-invoice-item.module';
+import { BatchModule } from './modules/batch/batch.module';
 
 @Module({
   imports: [
@@ -29,6 +35,12 @@ import { IamModule } from './iam/iam.module';
     CodeGenerationModule,
     IamModule,
     DrugCatalogModule,
+    SupplierModule,
+    PurchaseOrderModule,
+    PurchaseOrderItemModule,
+    SupplierInvoiceModule,
+    SupplierInvoiceItemModule,
+    BatchModule,
   ],
   providers: [
     {

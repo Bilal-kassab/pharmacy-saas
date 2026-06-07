@@ -48,6 +48,42 @@ enum PharmacyDocumentStatus {
   REJECTED
 }
 
+enum DrugSource {
+  GENERAL
+  PRIVATE
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  RECEIVED
+  CANCELLED
+}
+
+enum PurchaseOrderItemStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum BatchStatus {
+  ACTIVE
+  EXPIRED
+  DEPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum SupplierInvoiceStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 model UserAccount {
   userId       Int               @id @default(autoincrement()) @map("user_id")
   email        String            @unique
@@ -104,6 +140,10 @@ model Pharmacy {
 
   credential PharmacyCredential?
   documents  PharmacyDocument[]
+
+  pharmacyDrugs  PharmacyDrug[]
+  suppliers      Supplier[]
+  purchaseOrders PurchaseOrder[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -190,6 +230,8 @@ model DosageForm {
 
   generalDrugs GeneralDrug[]
 
+  privateDrugs PrivateDrug[]
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -209,28 +251,28 @@ model DrugCategory {
   @@map("drug_categories")
 }
 
-model GeneralDrug {
-  generalDrugId Int @id @default(autoincrement()) @map("general_drug_id")
+// model GeneralDrug {
+//   generalDrugId Int @id @default(autoincrement()) @map("general_drug_id")
 
-  dosageFormId Int        @map("dosage_form_id")
-  dosageForm   DosageForm @relation(fields: [dosageFormId], references: [dosageFormId])
+//   dosageFormId Int        @map("dosage_form_id")
+//   dosageForm   DosageForm @relation(fields: [dosageFormId], references: [dosageFormId])
 
-  tradeName     String  @map("trade_name")
-  barcode       String  @unique
-  unitsPerBox   Int     @map("units_per_box")
-  netPrice      Decimal @map("net_price") @db.Decimal(12, 2)
-  consumerPrice Decimal @map("consumer_price") @db.Decimal(12, 2)
-  isRx          Boolean @default(false) @map("is_rx")
-  isActive      Boolean @default(true) @map("is_active")
+//   tradeName     String  @map("trade_name")
+//   barcode       String  @unique
+//   unitsPerBox   Int     @map("units_per_box")
+//   netPrice      Decimal @map("net_price") @db.Decimal(12, 2)
+//   consumerPrice Decimal @map("consumer_price") @db.Decimal(12, 2)
+//   isRx          Boolean @default(false) @map("is_rx")
+//   isActive      Boolean @default(true) @map("is_active")
 
-  ingredients DrugIngredient[]
-  categories  DrugCategoryAssignment[]
+//   ingredients DrugIngredient[]
+//   categories  DrugCategoryAssignment[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+//   createdAt DateTime @default(now()) @map("created_at")
+//   updatedAt DateTime @updatedAt @map("updated_at")
 
-  @@map("general_drugs")
-}
+//   @@map("general_drugs")
+// }
 
 model DrugIngredient {
   drugIngredientId Int @id @default(autoincrement()) @map("drug_ingredient_id")
@@ -264,4 +306,262 @@ model DrugCategoryAssignment {
 
   @@unique([generalDrugId, categoryId])
   @@map("drug_category_assignments")
+}
+
+// ─── DRUG (SUPERTYPE) ─────────────────────────────────────────────────────────
+
+model Drug {
+  drugId Int        @id @default(autoincrement()) @map("drug_id")
+  source DrugSource
+
+  // exactly one of these will be populated
+  generalDrug GeneralDrug?
+  privateDrug PrivateDrug?
+
+  pharmacyDrugs PharmacyDrug[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("drugs")
+}
+
+// ─── GENERAL DRUG ─────────────────────────────────────────────────────────────
+
+model GeneralDrug {
+  generalDrugId Int @id @default(autoincrement()) @map("general_drug_id")
+
+  // 1-to-1 with Drug supertype
+  drugId Int  @unique @map("drug_id")
+  drug   Drug @relation(fields: [drugId], references: [drugId], onDelete: Cascade)
+
+  dosageFormId Int        @map("dosage_form_id")
+  dosageForm   DosageForm @relation(fields: [dosageFormId], references: [dosageFormId])
+
+  tradeName     String  @map("trade_name")
+  barcode       String  @unique
+  unitsPerBox   Int     @map("units_per_box")
+  netPrice      Decimal @map("net_price") @db.Decimal(12, 2)
+  consumerPrice Decimal @map("consumer_price") @db.Decimal(12, 2)
+  isRx          Boolean @default(false) @map("is_rx")
+  isActive      Boolean @default(true) @map("is_active")
+
+  ingredients DrugIngredient[]
+  categories  DrugCategoryAssignment[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("general_drugs")
+}
+
+// ─── PRIVATE DRUG ─────────────────────────────────────────────────────────────
+
+model PrivateDrug {
+  privateDrugId Int @id @default(autoincrement()) @map("private_drug_id")
+
+  // 1-to-1 with Drug supertype
+  drugId Int  @unique @map("drug_id")
+  drug   Drug @relation(fields: [drugId], references: [drugId], onDelete: Cascade)
+
+  dosageFormId Int        @map("dosage_form_id")
+  dosageForm   DosageForm @relation(fields: [dosageFormId], references: [dosageFormId])
+
+  tradeName   String
+  barcode     String  @unique
+  unitsPerBox Int     @map("units_per_box")
+  isRx        Boolean @default(false) @map("is_rx")
+  isActive    Boolean @default(true) @map("is_active")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("private_drugs")
+}
+
+// ─── PHARMACY DRUG ────────────────────────────────────────────────────────────
+
+model PharmacyDrug {
+  pharmacyDrugId Int @id @default(autoincrement()) @map("pharmacy_drug_id")
+
+  pharmacyId Int      @map("pharmacy_id")
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [pharmacyId], onDelete: Cascade)
+
+  // Single FK to supertype — no more nullable columns
+  drugId Int  @map("drug_id")
+  drug   Drug @relation(fields: [drugId], references: [drugId])
+
+  minStockAlert   Int?      @map("min_stock_alert")
+  sellPart        Boolean   @default(false) @map("sell_part")
+  netPrice        Decimal?  @map("net_price") @db.Decimal(12, 2)
+  consumerPrice   Decimal?  @map("consumer_price") @db.Decimal(12, 2)
+  expiryDateAlarm DateTime? @map("expiry_date_alarm") @db.Date
+  isActive        Boolean   @default(true) @map("is_active")
+  notes           String?   @db.Text
+
+  batches              Batch[]
+  purchaseOrderItems   PurchaseOrderItem[]
+  supplierInvoiceItems SupplierInvoiceItem[]
+  drugLocations        DrugLocation[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([pharmacyId, drugId]) // a pharmacy can't add the same drug twice
+  @@map("pharmacy_drugs")
+}
+
+// ─── DRUG LOCATION ────────────────────────────────────────────────────────────
+
+model DrugLocation {
+  drugLocationId Int @id @default(autoincrement()) @map("drug_location_id")
+
+  pharmacyDrugId Int          @map("pharmacy_drug_id")
+  pharmacyDrug   PharmacyDrug @relation(fields: [pharmacyDrugId], references: [pharmacyDrugId], onDelete: Cascade)
+
+  storageLocation String @map("storage_location")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("drug_locations")
+}
+
+// ─── BATCH ────────────────────────────────────────────────────────────────────
+
+model Batch {
+  batchId Int @id @default(autoincrement()) @map("batch_id")
+
+  pharmacyDrugId Int          @map("pharmacy_drug_id")
+  pharmacyDrug   PharmacyDrug @relation(fields: [pharmacyDrugId], references: [pharmacyDrugId], onDelete: Cascade)
+
+  supplierInvoiceItemId Int?                 @map("supplier_invoice_item_id")
+  supplierInvoiceItem   SupplierInvoiceItem? @relation(fields: [supplierInvoiceItemId], references: [supplierInvoiceItemId])
+
+  expiryDate      DateTime?   @map("expiry_date") @db.Date
+  initialQuantity Int         @map("initial_quantity")
+  soldQuantity    Int         @default(0) @map("sold_quantity")
+  receivedDate    DateTime?   @map("received_date") @db.Date
+  status          BatchStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("batches")
+}
+
+// ─── SUPPLIER ─────────────────────────────────────────────────────────────────
+
+model Supplier {
+  supplierId Int @id @default(autoincrement()) @map("supplier_id")
+
+  pharmacyId Int      @map("pharmacy_id")
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [pharmacyId], onDelete: Cascade)
+
+  supplierName String  @map("supplier_name")
+  phone        String?
+  address      String?
+  notes        String? @db.Text
+
+  invoices SupplierInvoice[]
+
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  
+  purchaseOrders PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+// ─── SUPPLIER INVOICE ─────────────────────────────────────────────────────────
+
+model SupplierInvoice {
+  supplierInvoiceId Int @id @default(autoincrement()) @map("supplier_invoice_id")
+
+  supplierId Int      @map("supplier_id")
+  supplier   Supplier @relation(fields: [supplierId], references: [supplierId], onDelete: Cascade)
+
+  invoiceNumber String?               @unique @map("invoice_number")
+  invoiceDate   DateTime              @map("invoice_date") @db.Date
+  paymentStatus PaymentStatus         @default(PENDING) @map("payment_status")
+  subtotal      Decimal               @db.Decimal(12, 2)
+  discount      Decimal               @default(0) @db.Decimal(12, 2)
+  totalPrice    Decimal               @map("total_price") @db.Decimal(12, 2)
+  notes         String?               @db.Text
+  status        SupplierInvoiceStatus @default(PENDING)
+
+  items SupplierInvoiceItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("supplier_invoices")
+}
+
+// ─── SUPPLIER INVOICE ITEM ────────────────────────────────────────────────────
+
+model SupplierInvoiceItem {
+  supplierInvoiceItemId Int @id @default(autoincrement()) @map("supplier_invoice_item_id")
+
+  supplierInvoiceId Int             @map("supplier_invoice_id")
+  supplierInvoice   SupplierInvoice @relation(fields: [supplierInvoiceId], references: [supplierInvoiceId], onDelete: Cascade)
+
+  pharmacyDrugId Int          @map("pharmacy_drug_id")
+  pharmacyDrug   PharmacyDrug @relation(fields: [pharmacyDrugId], references: [pharmacyDrugId])
+
+  quantity     Int
+  netUnitPrice Decimal @map("net_unit_price") @db.Decimal(12, 2)
+  totalPrice   Decimal @map("total_price") @db.Decimal(12, 2)
+  notes        String? @db.Text
+
+  batches Batch[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("supplier_invoice_items")
+}
+
+// ─── PURCHASE ORDER ───────────────────────────────────────────────────────────
+
+model PurchaseOrder {
+  purchaseOrderId Int @id @default(autoincrement()) @map("purchase_order_id")
+
+  pharmacyId Int      @map("pharmacy_id")
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [pharmacyId], onDelete: Cascade)
+
+  supplierId Int
+  supplier   Supplier @relation(fields: [supplierId], references: [supplierId])
+
+  orderDate   DateTime    @default(now()) @map("order_date") @db.Date
+  orderStatus OrderStatus @default(PENDING) @map("order_status")
+  notes       String?     @db.Text
+
+  items PurchaseOrderItem[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("purchase_orders")
+}
+
+// ─── PURCHASE ORDER ITEM ──────────────────────────────────────────────────────
+
+model PurchaseOrderItem {
+  purchaseOrderItemId Int @id @default(autoincrement()) @map("purchase_order_item_id")
+
+  purchaseOrderId Int           @map("purchase_order_id")
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [purchaseOrderId], onDelete: Cascade)
+
+  pharmacyDrugId Int          @map("pharmacy_drug_id")
+  pharmacyDrug   PharmacyDrug @relation(fields: [pharmacyDrugId], references: [pharmacyDrugId])
+
+  orderedQuantityBoxes Int                     @map("ordered_quantity_boxes")
+  status               PurchaseOrderItemStatus @default(PENDING)
+  notes                String?                 @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("purchase_order_items")
 }

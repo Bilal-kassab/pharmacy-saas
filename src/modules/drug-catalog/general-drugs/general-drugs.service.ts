@@ -10,7 +10,7 @@ import {
   DrugIngredientInputDto,
   UpdateGeneralDrugDto,
 } from '../dto/general-drug.dto';
-import { Prisma } from '../../../generated/prisma/client';
+import { DrugSource, Prisma } from '../../../generated/prisma/client';
 
 @Injectable()
 export class GeneralDrugsService {
@@ -39,7 +39,17 @@ export class GeneralDrugsService {
 
         return tx.generalDrug.create({
           data: {
-            dosageFormId: dto.dosageFormId,
+            // dosageFormId: dto.dosageFormId,
+            drug: {
+              create: {
+                source: DrugSource.GENERAL,
+              },
+            },
+            dosageForm: {
+              connect: {
+                dosageFormId: dto.dosageFormId,
+              },
+            },
             tradeName: dto.tradeName,
             barcode: dto.barcode,
             unitsPerBox: dto.unitsPerBox,
@@ -237,7 +247,10 @@ export class GeneralDrugsService {
   ) {
     const ingredientIds = ingredients.map((item) => item.ingredientId);
 
-    this.ensureNoDuplicateNumbers(ingredientIds, 'Duplicate ingredientId found');
+    this.ensureNoDuplicateNumbers(
+      ingredientIds,
+      'Duplicate ingredientId found',
+    );
 
     const existingIngredients = await prismaClient.activeIngredient.findMany({
       where: {

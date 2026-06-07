@@ -234,7 +234,18 @@ export class AuthenticationService {
   }
 
   getProfile(id: number) {
-    // return this.userRepository.findOneBy({ id });
+    return this.prisma.userAccount.findUnique({
+      where: {
+        userId: id,
+      },
+      select: {
+        userId: true,
+        email: true,
+        fullName: true,
+        phone: true,
+        accountType: true,
+      },
+    });
   }
 
   async refreshTokens(refreshTokens: RefreshTokenDto) {

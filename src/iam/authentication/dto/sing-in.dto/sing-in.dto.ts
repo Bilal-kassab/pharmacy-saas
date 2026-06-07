@@ -19,8 +19,8 @@ export class SingInDto {
   @IsString()
   @MinLength(8)
   @MaxLength(64)
-  @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
-    message: 'Password must contain at least one letter and one number',
-  })
+  // @Matches(/^(?=.*[A-Za-z])(?=.*\d).+$/, {
+  //   message: 'Password must contain at least one letter and one number',
+  // })
   password!: string;
 }

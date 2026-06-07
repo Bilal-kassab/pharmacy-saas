@@ -23,7 +23,8 @@ import { AccountType } from '../../generated/prisma/enums';
 export class PharmacyController {
   constructor(private readonly pharmacyService: PharmacyService) {}
 
-  @Auth(AuthType.None)
+  // @Auth(AuthType.None)
+  @Roles(AccountType.ADMIN)
   @Post('create')
   @ResponseMessage('Pharmacy account created successfully')
   @ApiOperation({
@@ -36,9 +37,10 @@ export class PharmacyController {
     return this.pharmacyService.createPharmacyAccount(dto);
   }
 
-  @Auth(AuthType.None)
-  @Patch(':id/status')
+  // @Auth(AuthType.None)
   // @Roles(AccountType.ADMIN)
+  @Patch(':id/status')
+  @Roles(AccountType.ADMIN)
   @ResponseMessage('Pharmacy status changed successfully')
   changeStatus(@Param('id') id: string, @Body() dto: ChangePharmacyStatusDto) {
     return this.pharmacyService.changeStatus(+id, dto);

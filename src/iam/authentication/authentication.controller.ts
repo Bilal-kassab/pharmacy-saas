@@ -34,13 +34,12 @@ export class AuthenticationController {
   @Post('user/sign-up')
   async userSignUp(@Body() signUpDto: SingUpDto) {}
 
-
-    @Auth(AuthType.None)
-    @HttpCode(HttpStatus.OK)
-    @Post('sign-in-user')
-    async signInUser(@Body() signInDto: SingInDto) {
-      return await this.authenticationService.signInUser(signInDto);
-    }
+  @Auth(AuthType.None)
+  @HttpCode(HttpStatus.OK)
+  @Post('sign-in-user')
+  async signInUser(@Body() signInDto: SingInDto) {
+    return await this.authenticationService.signInUser(signInDto);
+  }
 
   @Auth(AuthType.None)
   @HttpCode(HttpStatus.OK)
@@ -49,8 +48,12 @@ export class AuthenticationController {
 
   // @Throttle({ default: { limit: 3, ttl: 60000 } })
   @Get('profile')
+  @Roles(
+    AccountType.ADMIN,
+    AccountType.PHARMACY_OWNER,
+    AccountType.MEDICAL_TEAM,
+  )
   async getProfile(@ActiveUser() user: any) {
-    // return user;
     const profile = await this.authenticationService.getProfile(user.sub);
     return { data: profile, message: 'Profile fetched successfully.' };
   }
@@ -66,8 +69,8 @@ export class AuthenticationController {
 
   @Auth(AuthType.None)
   @HttpCode(HttpStatus.OK)
-  @Post('owners/first-register')
-  @ResponseMessage('Owner account activated successfully.')
+  @Post('users/first-register')
+  @ResponseMessage('User account activated successfully.')
   ownerFirstRegister(@Body() dto: FirstUserRegisterDto) {
     return this.authenticationService.firstRegisterUser(dto);
   }
@@ -97,16 +100,5 @@ export class AuthenticationController {
   @ResponseMessage('Pharmacy signed in successfully.')
   pharmacySignIn(@Body() dto: PharmacySignInDto) {
     return this.authenticationService.pharmacySignIn(dto);
-  }
-
-  // @Roles(AccountType.PHARMACY)
-  @Auth(AuthType.Bearer)
-  @AllowPharmacyStatuses(PharmacyStatus.PENDING)
-  @SkipPharmacyStatusCheck()
-  @HttpCode(HttpStatus.OK)
-  @Get('pharmacies/profile')
-  @ResponseMessage('Pharmacy Profile')
-  pharmacyProfile() {
-    return 'hi';
   }
 }
