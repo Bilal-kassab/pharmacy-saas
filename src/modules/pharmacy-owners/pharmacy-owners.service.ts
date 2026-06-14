@@ -14,6 +14,7 @@ import { CodeGenerationService } from '../../common/code-generation/code-generat
 import { CreatePharmacyOwnerDto } from './dto/create-pharmacy-owner.dto';
 import { UpdatePharmacyOwnerDto } from './dto/update-pharmacy-owner.dto';
 import { PrismaService } from '../../prisma/prisma.service';
+import { ListPharmacyOwnersDto } from './dto/list-pharmacy-owners.dto';
 
 type TransactionClient = Prisma.TransactionClient;
 
@@ -160,9 +161,87 @@ export class PharmacyOwnersService {
     return 'This action adds a new pharmacyOwner';
   }
 
-  findAll() {
-    return `This action returns all pharmacyOwners`;
+  async findAll(
+  dto: ListPharmacyOwnersDto,
+) {
+  
+  const skip = (dto.page - 1) * dto.limit;
+
+  const userFilter: Prisma.UserAccountWhereInput = {};
+
+  if (dto.name) {
+    userFilter.fullName = {
+      contains: dto.name,
+      mode: 'insensitive',
+    };
   }
+   // if (dto.phone) {
+  //   userFilter.phone = {
+  //     contains: dto.phone,
+  //   };
+  // }
+  const where: Prisma.PharmacyOwnerWhereInput =
+    Object.keys(userFilter).length > 0
+      ? {
+          user: userFilter,
+        }
+      : {};
+
+  const [pharmacyOwners, totalItems] =
+    await Promise.all([
+      this.prisma.pharmacyOwner.findMany({
+        where,
+
+        skip,
+        take: dto.limit,
+
+        orderBy: {
+          createdAt: 'desc',
+        },
+
+        select: {
+          pharmacyOwnerId: true,
+          createdAt: true,
+          updatedAt: true,
+
+          user: {
+            select: {
+              userId: true,
+              fullName: true,
+              email: true,
+              phone: true,
+              status: true,
+            },
+          },
+
+          // _count: {
+          //   select: {
+          //     pharmacies: true,
+          //   },
+          // },
+        },
+      }),
+
+      this.prisma.pharmacyOwner.count({
+        where,
+      }),
+    ]);
+
+    const pages = Math.ceil(totalItems / dto.limit);
+    const hasNextPage = dto.page < pages;
+    const hasPreviousPage = dto.page > 1;
+
+    return {
+      data: pharmacyOwners,
+      page: dto.page,
+      limit: dto.limit,
+      total: totalItems,
+      pages,
+      hasNextPage,
+      hasPreviousPage,
+    };
+  }
+  
 
   findOne(id: number) {
     return `This action returns a #${id} pharmacyOwner`;

@@ -30,12 +30,41 @@ export class DrugCategoriesService {
     }
   }
 
-  async findAll() {
-    return this.prisma.drugCategory.findMany({
-      orderBy: {
-        categoryName: 'asc',
-      },
-    });
+  async findAll(
+    page: number,
+    limit: number,
+  ) {
+
+    const skip = (page - 1) * limit;
+
+    const [drugs, total] = await Promise.all([
+      this.prisma.drugCategory.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.drugCategory.count(),
+    ]);
+    const pages = Math.ceil(total / limit);
+    const hasNextPage = page < pages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: drugs,
+      page,
+      limit,
+      total,
+      pages,
+      hasNextPage,
+      hasPreviousPage,
+    };
+    // return this.prisma.drugCategory.findMany({
+    //   orderBy: {
+    //     categoryName: 'asc',
+    //   },
+    //   // skip: (page - 1) * limit,
+    //   // take: limit,
+    // });
   }
 
   async findOne(id: number) {

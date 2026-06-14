@@ -23,33 +23,36 @@ export class GeneralDrugsService {
         ingredient: true,
       },
     },
-    categories: {
-      include: {
-        category: true,
-      },
-    },
+    // categories: {
+    //   include: {
+    //     category: true,
+    //   },
+    // },
   } satisfies Prisma.GeneralDrugInclude;
 
   async create(dto: CreateGeneralDrugDto) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        await this.ensureDosageFormExists(dto.dosageFormId, tx);
-        await this.ensureIngredientsExist(dto.ingredients, tx);
-        await this.ensureCategoriesExist(dto.categoryIds, tx);
+        // await this.ensureDosageFormExists(dto.dosageFormId, tx);
+        // await this.ensureIngredientsExist(dto.ingredients, tx);
+        // await this.ensureCategoriesExist(dto.categoryIds, tx);
 
         return tx.generalDrug.create({
           data: {
             // dosageFormId: dto.dosageFormId,
+
             drug: {
               create: {
                 source: DrugSource.GENERAL,
               },
             },
+
             dosageForm: {
               connect: {
                 dosageFormId: dto.dosageFormId,
               },
             },
+
             tradeName: dto.tradeName,
             barcode: dto.barcode,
             unitsPerBox: dto.unitsPerBox,
@@ -86,21 +89,82 @@ export class GeneralDrugsService {
     }
   }
 
-  async findAll() {
-    return this.prisma.generalDrug.findMany({
-      include: this.includeRelations,
-      orderBy: {
-        tradeName: 'asc',
-      },
-    });
+  async findAll(options: {
+    page: number;
+    limit: number;
+    // isActive?: boolean;
+    // isRx?: boolean;
+    // dosageFormId?: number;
+    // searchTerm?: string; // search by tradeName or barcode
+  }){
+    const { page, limit, 
+      // isActive, isRx, dosageFormId, searchTerm 
+    } = options;
+    const skip = (page - 1) * limit;
+
+    // Build where clause
+    const where: Prisma.GeneralDrugWhereInput = {};
+
+    // if (typeof isActive === 'boolean') {
+    //   where.isActive = isActive;
+    // }
+
+    // if (typeof isRx === 'boolean') {
+    //   where.isRx = isRx;
+    // }
+
+    // if (dosageFormId) {
+    //   where.dosageFormId = dosageFormId;
+    // }
+
+    // if (searchTerm) {
+    //   where.OR = [
+    //     { tradeName: { contains: searchTerm, mode: 'insensitive' } },
+    //     { barcode: { contains: searchTerm, mode: 'insensitive' } },
+    //   ];
+    // }
+
+    // Execute queries in parallel
+    const [drugs, total] = await Promise.all([
+      this.prisma.generalDrug.findMany({
+        where,
+        // include: this.includeRelations,
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.generalDrug.count({ where }),
+    ]);
+
+    const pages = Math.ceil(total / limit);
+    const hasNextPage = page < pages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: drugs,
+      page,
+      limit,
+      total,
+      pages,
+      hasNextPage,
+      hasPreviousPage,
+    };
   }
+
 
   async findOne(id: number) {
     const drug = await this.prisma.generalDrug.findUnique({
       where: {
         generalDrugId: id,
       },
-      include: this.includeRelations,
+      include: {
+        ...this.includeRelations,
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!drug) {
@@ -115,7 +179,14 @@ export class GeneralDrugsService {
       where: {
         barcode,
       },
-      include: this.includeRelations,
+      include: {
+        ...this.includeRelations,
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+      },
     });
 
     if (!drug) {
@@ -226,6 +297,16 @@ export class GeneralDrugsService {
     };
   }
 
+  async softDelete(generalDrugId: number) {
+    await this.findOne(generalDrugId);
+
+    return this.prisma.generalDrug.update({
+      where: { generalDrugId },
+      data: { isActive: false },
+      include: this.includeRelations,
+    });
+  }
+
   private async ensureDosageFormExists(
     dosageFormId: number,
     prismaClient: Prisma.TransactionClient,
@@ -297,4 +378,51 @@ export class GeneralDrugsService {
       throw new BadRequestException(message);
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // PRIVATE MAPPING METHOD
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Map repository entity to response DTO
+   */
+  private mapToResponse(drug: any) {
+    return {
+      generalDrugId: drug.generalDrugId,
+      drugId: drug.drugId,
+      source: drug.drug.source,
+      dosageFormId: drug.dosageFormId,
+      dosageForm: {
+        dosageFormId: drug.dosageForm.dosageFormId,
+        dosageFormName: drug.dosageForm.dosageFormName,
+        formCategory: drug.dosageForm.formCategory,
+      },
+      tradeName: drug.tradeName,
+      barcode: drug.barcode,
+      unitsPerBox: drug.unitsPerBox,
+      netPrice: drug.netPrice.toString(),
+      consumerPrice: drug.consumerPrice.toString(),
+      isRx: drug.isRx,
+      isActive: drug.isActive,
+      ingredients: drug.ingredients.map((ing: any) => ({
+        drugIngredientId: ing.drugIngredientId,
+        ingredientId: ing.ingredientId,
+        ingredientName: ing.ingredient.ingredientName,
+        strengthValue: ing.strengthValue.toString(),
+        unit: ing.unit,
+        createdAt: ing.createdAt,
+        updatedAt: ing.updatedAt,
+      })),
+      categories: drug.categories.map((cat: any) => ({
+        uniqueId: cat.uniqueId,
+        categoryId: cat.categoryId,
+        categoryName: cat.category.categoryName,
+        createdAt: cat.createdAt,
+      })),
+      createdAt: drug.createdAt,
+      updatedAt: drug.updatedAt,
+    };
+  }
 }
+
+

@@ -1,7 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
+// ─────────────────────────────────────────────────────────────────────────────
+// PRISMA SCHEMA
+// ─────────────────────────────────────────────────────────────────────────────
 
 generator client {
   provider     = "prisma-client"
@@ -13,13 +12,7 @@ datasource db {
   provider = "postgresql"
 }
 
-// model UserAccount {
-//   userId Int @id @default(autoincrement()) @map("user_id")
-
-//   email String @unique
-
-//   @@map("user_accounts")
-// }
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
 
 enum AccountType {
   ADMIN
@@ -47,6 +40,16 @@ enum PharmacyDocumentStatus {
   APPROVED
   REJECTED
 }
+
+
+enum DosageFormCategory {
+  SOLID
+  LIQUID
+  SEMI_SOLID
+  INJECTION
+  OTHER
+}
+
 
 enum DrugSource {
   GENERAL
@@ -130,6 +133,8 @@ enum CustomerRequestItemStatus {
   CANCELLED
 }
 
+// ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
+
 model UserAccount {
   userId       Int               @id @default(autoincrement()) @map("user_id")
   email        String            @unique
@@ -143,10 +148,12 @@ model UserAccount {
   pharmacyOwner PharmacyOwner?
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("user_accounts")
 }
+
+// ─── PHARMACY OWNER ───────────────────────────────────────────────────────────
 
 model PharmacyOwner {
   pharmacyOwnerId Int @id @default(autoincrement()) @map("pharmacy_owner_id")
@@ -159,10 +166,12 @@ model PharmacyOwner {
   pharmacies Pharmacy[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("pharmacy_owners")
 }
+
+// ─── PHARMACY ─────────────────────────────────────────────────────────────────
 
 model Pharmacy {
   pharmacyId Int @id @default(autoincrement()) @map("pharmacy_id")
@@ -171,18 +180,16 @@ model Pharmacy {
   pharmacyOwner   PharmacyOwner @relation(fields: [pharmacyOwnerId], references: [pharmacyOwnerId], onDelete: Cascade)
 
   pharmacistLicenseNo String? @unique @map("pharmacist_license_no")
-
-  pharmacyName      String  @map("pharmacy_name")
-  pharmacyCode      String? @unique @map("pharmacy_code")
-  contactPhone      String? @map("contact_phone")
-  email             String? @unique
-  governorate       String?
-  healthDirectorate String? @map("health_directorate")
-  areaName          String? @map("area_name")
-  addressText       String? @map("address_text")
-
-  status      PharmacyStatus @default(PENDING)
-  openingDate DateTime?      @map("opening_date") @db.Date
+  pharmacyName        String  @map("pharmacy_name")
+  pharmacyCode        String? @unique @map("pharmacy_code")
+  contactPhone        String? @map("contact_phone")
+  email               String? @unique
+  governorate         String?
+  healthDirectorate   String? @map("health_directorate")
+  areaName            String? @map("area_name")
+  addressText         String? @map("address_text")
+  status              PharmacyStatus @default(PENDING)
+  openingDate         DateTime?      @map("opening_date") @db.Date
 
   credential PharmacyCredential?
   documents  PharmacyDocument[]
@@ -193,10 +200,12 @@ model Pharmacy {
   CustomerRequests CustomerRequest[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("pharmacies")
 }
+
+// ─── PHARMACY CREDENTIAL ──────────────────────────────────────────────────────
 
 model PharmacyCredential {
   pharmacyCredentialId Int @id @default(autoincrement()) @map("pharmacy_credential_id")
@@ -210,10 +219,12 @@ model PharmacyCredential {
   activatedAt  DateTime? @map("activated_at")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("pharmacy_credentials")
 }
+
+// ─── PHARMACY DOCUMENT ────────────────────────────────────────────────────────
 
 model PharmacyDocument {
   documentId Int @id @default(autoincrement()) @map("document_id")
@@ -229,10 +240,12 @@ model PharmacyDocument {
   status  PharmacyDocumentStatus @default(PENDING)
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("pharmacy_documents")
 }
+
+// ─── PHARMACY DOCUMENT TYPE ───────────────────────────────────────────────────
 
 model PharmacyDocumentType {
   documentTypeId Int @id @default(autoincrement()) @map("document_type_id")
@@ -244,31 +257,12 @@ model PharmacyDocumentType {
   documents PharmacyDocument[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("pharmacy_document_types")
 }
 
-enum DosageFormCategory {
-  SOLID
-  LIQUID
-  SEMI_SOLID
-  INJECTION
-  OTHER
-}
-
-model ActiveIngredient {
-  ingredientId   Int     @id @default(autoincrement()) @map("ingredient_id")
-  ingredientName String  @unique @map("ingredient_name")
-  description    String? @db.Text
-
-  drugIngredients DrugIngredient[]
-
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("active_ingredients")
-}
+// ─── DOSAGE FORM ──────────────────────────────────────────────────────────────
 
 model DosageForm {
   dosageFormId   Int                @id @default(autoincrement()) @map("dosage_form_id")
@@ -276,14 +270,15 @@ model DosageForm {
   formCategory   DosageFormCategory @map("form_category")
 
   generalDrugs GeneralDrug[]
-
   privateDrugs PrivateDrug[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("dosage_forms")
 }
+
+// ─── DRUG CATEGORY ────────────────────────────────────────────────────────────
 
 model DrugCategory {
   categoryId   Int     @id @default(autoincrement()) @map("category_id")
@@ -293,33 +288,28 @@ model DrugCategory {
   drugAssignments DrugCategoryAssignment[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("drug_categories")
 }
 
-// model GeneralDrug {
-//   generalDrugId Int @id @default(autoincrement()) @map("general_drug_id")
 
-//   dosageFormId Int        @map("dosage_form_id")
-//   dosageForm   DosageForm @relation(fields: [dosageFormId], references: [dosageFormId])
+// ─── ACTIVE INGREDIENT ────────────────────────────────────────────────────────
 
-//   tradeName     String  @map("trade_name")
-//   barcode       String  @unique
-//   unitsPerBox   Int     @map("units_per_box")
-//   netPrice      Decimal @map("net_price") @db.Decimal(12, 2)
-//   consumerPrice Decimal @map("consumer_price") @db.Decimal(12, 2)
-//   isRx          Boolean @default(false) @map("is_rx")
-//   isActive      Boolean @default(true) @map("is_active")
+model ActiveIngredient {
+  ingredientId   Int     @id @default(autoincrement()) @map("ingredient_id")
+  ingredientName String  @unique @map("ingredient_name")
+  description    String? @db.Text
 
-//   ingredients DrugIngredient[]
-//   categories  DrugCategoryAssignment[]
+  drugIngredients DrugIngredient[]
 
-//   createdAt DateTime @default(now()) @map("created_at")
-//   updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
-//   @@map("general_drugs")
-// }
+  @@map("active_ingredients")
+}
+
+// ─── DRUG INGREDIENT ──────────────────────────────────────────────────────────
 
 model DrugIngredient {
   drugIngredientId Int @id @default(autoincrement()) @map("drug_ingredient_id")
@@ -334,11 +324,13 @@ model DrugIngredient {
   unit          String
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@unique([generalDrugId, ingredientId, unit])
   @@map("drug_ingredients")
 }
+
+// ─── DRUG CATEGORY ASSIGNMENT ─────────────────────────────────────────────────
 
 model DrugCategoryAssignment {
   uniqueId Int @id @default(autoincrement()) @map("unique_id")
@@ -355,8 +347,8 @@ model DrugCategoryAssignment {
   @@map("drug_category_assignments")
 }
 
-// ─── DRUG (SUPERTYPE) ─────────────────────────────────────────────────────────
 
+// ─── DRUG (SUPERTYPE) ─────────────────────────────────────────────────────────
 model Drug {
   drugId Int        @id @default(autoincrement()) @map("drug_id")
   source DrugSource
@@ -440,8 +432,10 @@ model PharmacyDrug {
 
   minStockAlert   Int?      @map("min_stock_alert")
   sellPart        Boolean   @default(false) @map("sell_part")
-  netPrice        Decimal?  @map("net_price") @db.Decimal(12, 2)
-  consumerPrice   Decimal?  @map("consumer_price") @db.Decimal(12, 2)
+
+  netPrice        Decimal?  @map("net_price")       @db.Decimal(12, 2)
+  consumerPrice   Decimal?  @map("consumer_price")  @db.Decimal(12, 2)
+
   expiryDateAlarm DateTime? @map("expiry_date_alarm") @db.Date
   isActive        Boolean   @default(true) @map("is_active")
   notes           String?   @db.Text
@@ -452,10 +446,11 @@ model PharmacyDrug {
   drugLocations        DrugLocation[]
   CustomerRequestItems CustomerRequestItem[]
 
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  @@unique([pharmacyId, drugId])  // a pharmacy can't add the same drug twice
 
-  @@unique([pharmacyId, drugId]) // a pharmacy can't add the same drug twice
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
   @@map("pharmacy_drugs")
 }
 
@@ -470,7 +465,9 @@ model DrugLocation {
   storageLocation String @map("storage_location")
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
 
   @@map("drug_locations")
 }
@@ -486,6 +483,7 @@ model Batch {
   supplierInvoiceItemId Int?                 @map("supplier_invoice_item_id")
   supplierInvoiceItem   SupplierInvoiceItem? @relation(fields: [supplierInvoiceItemId], references: [supplierInvoiceItemId])
 
+
   expiryDate      DateTime?   @map("expiry_date") @db.Date
   initialQuantity Int         @map("initial_quantity")
   soldQuantity    Int         @default(0) @map("sold_quantity")
@@ -494,6 +492,7 @@ model Batch {
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
 
   @@map("batches")
 }
@@ -541,7 +540,7 @@ model SupplierInvoice {
   items SupplierInvoiceItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("supplier_invoices")
 }
@@ -559,13 +558,17 @@ model SupplierInvoiceItem {
 
   quantity     Int
   netUnitPrice Decimal @map("net_unit_price") @db.Decimal(12, 2)
-  totalPrice   Decimal @map("total_price") @db.Decimal(12, 2)
+
+  totalPrice   Decimal @map("total_price")    @db.Decimal(12, 2)
+
   notes        String? @db.Text
 
   batches Batch[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
 
   @@map("supplier_invoice_items")
 }
@@ -578,6 +581,7 @@ model PurchaseOrder {
   pharmacyId Int      @map("pharmacy_id")
   pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [pharmacyId], onDelete: Cascade)
 
+
   supplierId Int
   supplier   Supplier @relation(fields: [supplierId], references: [supplierId])
 
@@ -588,7 +592,9 @@ model PurchaseOrder {
   items PurchaseOrderItem[]
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+
+  updatedAt DateTime @updatedAt      @map("updated_at")
+
 
   @@map("purchase_orders")
 }
@@ -609,7 +615,8 @@ model PurchaseOrderItem {
   notes                String?                 @db.Text
 
   createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+
+  updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("purchase_order_items")
 }

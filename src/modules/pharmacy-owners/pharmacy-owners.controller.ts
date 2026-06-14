@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { PharmacyOwnersService } from './pharmacy-owners.service';
 import { CreatePharmacyOwnerDto } from './dto/create-pharmacy-owner.dto';
 import { UpdatePharmacyOwnerDto } from './dto/update-pharmacy-owner.dto';
+import { Roles } from '../../iam/authorization/decorators/roles.decorator';
+import { AccountType } from '../../generated/prisma/browser';
+import { ListPharmacyOwnersDto } from './dto/list-pharmacy-owners.dto';
 
 @Controller('pharmacy-owners')
 export class PharmacyOwnersController {
@@ -13,12 +16,18 @@ export class PharmacyOwnersController {
   }
 
   @Get()
-  findAll() {
-    return this.pharmacyOwnersService.findAll();
+  // @Roles(AccountType.ADMIN)
+  findAll(
+    @Query() dto: ListPharmacyOwnersDto,
+  ) {
+    return this.pharmacyOwnersService.findAll(dto);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
+  @Roles(AccountType.ADMIN)
+  findOne(
+    @Param('id') id: string,
+  ) {
     return this.pharmacyOwnersService.findOne(+id);
   }
 

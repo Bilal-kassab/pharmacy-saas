@@ -13,7 +13,7 @@ import { AccountType } from "../../generated/prisma/enums";
 
 export interface ActiveUserData {
   sub: number;
-  email: string;
+  email?: string;
   accountType?: AccountType;
   // type?: 'access' | 'refresh';
   // principalType?: 'USER' | 'PHARMACY';

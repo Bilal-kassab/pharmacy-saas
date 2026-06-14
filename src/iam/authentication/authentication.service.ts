@@ -95,16 +95,19 @@ export class AuthenticationService {
      if (!user) {
         throw new UnauthorizedException('بيانات الاعتماد غير صحيحة');
       }
+      if (!user.passwordHash) {
+        throw new UnauthorizedException('الحساب غير مفعل بعد');
+      }
      if (user.status !== UserAccountStatus.ACTIVE) {
         throw new ConflictException('الحساب غير نشط بعد');
       }
-      // const isPasswordValid = await this.hashingService.compare(
-      //   signInDto.password,
-      //   user.passwordHash,
-      // );
-      // if (!isPasswordValid) {
-      //   throw new UnauthorizedException('بيانات الاعتماد غير صحيحة');
-      // }
+      const isPasswordValid = await this.hashingService.compare(
+        signInDto.password,
+        user.passwordHash,
+      );
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('بيانات الاعتماد غير صحيحة');
+      }
     
     const tokens = await this.generateTokens({
       userId: user.userId,
@@ -120,6 +123,7 @@ export class AuthenticationService {
       //   accountType: user.accountType,
       //   status: user.status,
       // },
+      accountType: user.accountType,
       tokens,
     };
   }
@@ -508,6 +512,7 @@ export class AuthenticationService {
         pharmacyCode: credential.pharmacy.pharmacyCode,
         status: credential.pharmacy.status,
       },
+      accountType: AccountType.PHARMACY,
       tokens,
     };
   }

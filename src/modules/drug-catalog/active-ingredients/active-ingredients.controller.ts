@@ -8,12 +8,18 @@ import {
   Patch,
   Post,
 } from '@nestjs/common';
+import { Auth } from '../../../iam/authentication/decorators/auth.decorator';
+import { AuthType } from '../../../iam/authentication/enums/auth-type.enum';
+import { Roles } from '../../../iam/authorization/decorators/roles.decorator';
+import { AccountType } from '../../../generated/prisma/enums';
 import { ActiveIngredientsService } from './active-ingredients.service';
 import {
   CreateActiveIngredientDto,
   UpdateActiveIngredientDto,
 } from '../dto/active-ingredient.dto';
 
+@Auth(AuthType.Bearer)
+@Roles(AccountType.ADMIN, AccountType.MEDICAL_TEAM)
 @Controller('active-ingredients')
 export class ActiveIngredientsController {
   constructor(
@@ -21,30 +27,30 @@ export class ActiveIngredientsController {
   ) {}
 
   @Post()
-  create(@Body() dto: CreateActiveIngredientDto) {
-    return this.activeIngredientsService.create(dto);
+ async create(@Body() dto: CreateActiveIngredientDto) {
+    return await this.activeIngredientsService.create(dto);
   }
 
   @Get()
-  findAll() {
-    return this.activeIngredientsService.findAll();
+  async findAll() {
+    return await this.activeIngredientsService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.activeIngredientsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this.activeIngredientsService.findOne(id);
   }
 
-  @Patch(':id')
-  update(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateActiveIngredientDto,
-  ) {
-    return this.activeIngredientsService.update(id, dto);
-  }
+  // @Post(':id')
+  // async update(
+  //   @Param('id', ParseIntPipe) id: number,
+  //   @Body() dto: UpdateActiveIngredientDto,
+  // ) {
+  //   return await this.activeIngredientsService.update(id, dto);
+  // }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.activeIngredientsService.remove(id);
-  }
+  // @Post(':id')
+  // async remove(@Param('id', ParseIntPipe) id: number) {
+  //   return await this.activeIngredientsService.remove(id);
+  // }
 }

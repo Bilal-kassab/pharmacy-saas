@@ -7,42 +7,54 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { DosageFormsService } from './dosage-forms.service';
 import {
   CreateDosageFormDto,
   UpdateDosageFormDto,
 } from '../dto/dosage-form.dto';
-
+import { Auth } from '../../../iam/authentication/decorators/auth.decorator';
+import { Roles } from '../../../iam/authorization/decorators/roles.decorator';
+import { AccountType } from '../../../generated/prisma/enums';
+import { AuthType } from '../../../iam/authentication/enums/auth-type.enum';
+@Auth(AuthType.Bearer)
+@Roles(AccountType.ADMIN, AccountType.MEDICAL_TEAM)
 @Controller('dosage-forms')
 export class DosageFormsController {
   constructor(private readonly dosageFormsService: DosageFormsService) {}
 
   @Post()
-  create(@Body() dto: CreateDosageFormDto) {
-    return this.dosageFormsService.create(dto);
+ async create(@Body() dto: CreateDosageFormDto) {
+    return await this.dosageFormsService.create(dto);
   }
 
   @Get()
-  findAll() {
-    return this.dosageFormsService.findAll();
+  async findAll(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return await this.dosageFormsService.findAll(
+      parseInt(page || '1', 10),
+      parseInt(limit || '10', 10),
+    );
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number) {
-    return this.dosageFormsService.findOne(id);
+  async findOne(@Param('id', ParseIntPipe) id: number) {
+    return await this.dosageFormsService.findOne(id);
   }
 
   @Patch(':id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateDosageFormDto,
   ) {
-    return this.dosageFormsService.update(id, dto);
+    return await this.dosageFormsService.update(id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number) {
-    return this.dosageFormsService.remove(id);
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    return await this.dosageFormsService.remove(id);
   }
 }

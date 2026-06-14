@@ -30,12 +30,35 @@ export class DosageFormsService {
     }
   }
 
-  async findAll() {
-    return this.prisma.dosageForm.findMany({
-      orderBy: {
-        dosageFormName: 'asc',
-      },
-    });
+  async findAll(
+    page: number,
+    limit: number
+  ) {
+    const skip = (page - 1) * limit;
+
+    const [dosageForms, total] = await Promise.all([
+      this.prisma.dosageForm.findMany({
+        skip,
+        take: limit,
+        orderBy: {
+          dosageFormName: 'asc',
+        },
+      }),
+      this.prisma.dosageForm.count(),
+    ]);
+    const pages = Math.ceil(total / limit);
+    const hasNextPage = page < pages;
+    const hasPreviousPage = page > 1;
+
+    return {
+      data: dosageForms,
+      page,
+      limit,
+      total,
+      pages,
+      hasNextPage,
+      hasPreviousPage,
+    };
   }
 
   async findOne(id: number) {

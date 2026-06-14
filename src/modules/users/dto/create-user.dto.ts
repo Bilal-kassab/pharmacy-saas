@@ -25,6 +25,6 @@ export class CreateUserDto {
 
   // Only ADMIN and MEDICAL_TEAM are allowed here.
   // PHARMACY_OWNER should not be created from this API.
-  @IsIn([AccountType.ADMIN, AccountType.MEDICAL_TEAM])
+  @IsIn([AccountType.ADMIN, AccountType.MEDICAL_TEAM,AccountType.PHARMACY_OWNER])
   accountType!: AccountType;
 }
