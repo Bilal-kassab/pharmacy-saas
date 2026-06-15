@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma, SupplierInvoiceStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AddBatchesToSupplierInvoiceDto } from './dto/add-batches-to-supplier-invoice.dto';
 import { AddOpeningStockBatchesDto } from './dto/add-opening-stock-batches.dto';
@@ -67,6 +67,34 @@ export class BatchService {
     return `This action removes a #${id} batch`;
   }
 
+  // async addBatchesToInvoice(
+  //   pharmacyId: number,
+  //   supplierInvoiceId: number,
+  //   dto: AddBatchesToSupplierInvoiceDto,
+  // ): Promise<SupplierInvoiceWithDetails> {
+  //   this.validateBatchesPayload(dto.batches);
+
+  //   return this.prisma.$transaction(async (tx) => {
+  //     const invoice = await this.findSupplierInvoiceForStockingOrThrow(
+  //       tx,
+  //       pharmacyId,
+  //       supplierInvoiceId,
+  //     );
+
+  //     const invoiceItemsById = this.buildInvoiceItemsMap(invoice.items);
+
+  //     this.validateRequestedBatchQuantities(dto, invoiceItemsById);
+
+  //     await this.createInvoiceBatches(tx, dto, invoice, invoiceItemsById);
+
+  //     return this.findSupplierInvoiceWithDetailsOrThrow(
+  //       tx,
+  //       pharmacyId,
+  //       supplierInvoiceId,
+  //     );
+  //   });
+  // }
+
   async addBatchesToInvoice(
     pharmacyId: number,
     supplierInvoiceId: number,
@@ -87,11 +115,32 @@ export class BatchService {
 
       await this.createInvoiceBatches(tx, dto, invoice, invoiceItemsById);
 
-      return this.findSupplierInvoiceWithDetailsOrThrow(
+      const updatedInvoice = await this.findSupplierInvoiceForStockingOrThrow(
         tx,
         pharmacyId,
         supplierInvoiceId,
       );
+
+      const stockingStatus =
+        this.calculateInvoiceStockingStatus(updatedInvoice);
+
+      return tx.supplierInvoice.update({
+        where: {
+          supplierInvoiceId,
+        },
+        data: {
+          status: stockingStatus,
+        },
+        include: {
+          supplier: true,
+          items: {
+            include: {
+              pharmacyDrug: true,
+              batches: true,
+            },
+          },
+        },
+      });
     });
   }
 
@@ -186,8 +235,12 @@ export class BatchService {
       throw new NotFoundException('Supplier invoice not found');
     }
 
-    if (invoice.status === 'REJECTED') {
-      throw new BadRequestException('Rejected invoice cannot be stocked');
+    if (invoice.status === 'CANCELLED') {
+      throw new BadRequestException('Cancelled invoice cannot be stocked');
+    }
+
+    if (invoice.status === 'STOCKED') {
+      throw new BadRequestException('Invoice is already fully stocked');
     }
 
     return invoice;
@@ -226,9 +279,7 @@ export class BatchService {
   private buildInvoiceItemsMap(
     items: SupplierInvoiceItemForStocking[],
   ): InvoiceItemsById {
-    return new Map(
-      items.map((item) => [item.supplierInvoiceItemId, item]),
-    );
+    return new Map(items.map((item) => [item.supplierInvoiceItemId, item]));
   }
 
   private validateRequestedBatchQuantities(
@@ -313,9 +364,7 @@ export class BatchService {
     }
   }
 
-  private validateOpeningStockQuantities(
-    dto: AddOpeningStockBatchesDto,
-  ): void {
+  private validateOpeningStockQuantities(dto: AddOpeningStockBatchesDto): void {
     for (const batchDto of dto.batches) {
       if (batchDto.initialQuantity <= 0) {
         throw new BadRequestException(
@@ -351,5 +400,36 @@ export class BatchService {
         'One or more pharmacyDrugId values are invalid for this pharmacy',
       );
     }
+  }
+  private calculateInvoiceStockingStatus(
+    invoice: SupplierInvoiceForStocking,
+  ): SupplierInvoiceStatus {
+    const isFullyStocked = invoice.items.every((item) => {
+      const totalBatched = item.batches.reduce(
+        (sum, batch) => sum + batch.initialQuantity,
+        0,
+      );
+
+      return totalBatched === item.quantity;
+    });
+
+    if (isFullyStocked) {
+      return SupplierInvoiceStatus.STOCKED;
+    }
+
+    const isPartiallyStocked = invoice.items.some((item) => {
+      const totalBatched = item.batches.reduce(
+        (sum, batch) => sum + batch.initialQuantity,
+        0,
+      );
+
+      return totalBatched > 0;
+    });
+
+    if (isPartiallyStocked) {
+      return SupplierInvoiceStatus.PARTIALLY_STOCKED;
+    }
+
+    return SupplierInvoiceStatus.PENDING;
   }
 }

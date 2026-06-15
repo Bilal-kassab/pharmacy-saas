@@ -82,9 +82,16 @@ enum PaymentStatus {
 }
 
 enum SupplierInvoiceStatus {
-  PENDING
-  APPROVED
-  REJECTED
+
+    PENDING
+    PARTIALLY_STOCKED
+    STOCKED
+    CANCELLED
+    
+  // PENDING
+  // APPROVED
+  // REJECTED
+
   /// should change to 
   //  DRAFT
   // POSTED

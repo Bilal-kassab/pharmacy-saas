@@ -54,6 +54,7 @@ export class SupplierInvoiceController {
     return this.supplierInvoiceService.findOne(pharmacyId, id);
   }
 
+  @Roles(AccountType.PHARMACY)
   @Post(':id/batches')
   addBatchesToInvoice(
     @CurrentPharmacy() pharmacyId: number,

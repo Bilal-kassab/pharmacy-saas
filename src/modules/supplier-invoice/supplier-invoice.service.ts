@@ -5,100 +5,13 @@ import {
 } from '@nestjs/common';
 import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 import { UpdateSupplierInvoiceDto } from './dto/update-supplier-invoice.dto';
-import { Prisma } from '../../generated/prisma/client';
+import { Prisma, SupplierInvoiceStatus } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SupplierInvoiceFilterDto } from './dto/create-supplier-invoice-filter.dto';
 
 @Injectable()
 export class SupplierInvoiceService {
   constructor(private readonly prisma: PrismaService) {}
-
-  // async create(pharmacyId: number, dto: CreateSupplierInvoiceDto) {
-  //   if (!Array.isArray(dto.items) || dto.items.length === 0) {
-  //     throw new BadRequestException('items must be a non-empty array');
-  //   }
-
-  //   return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-  //     // 1. verify supplier belongs to pharmacy
-  //     await this.assertSupplierBelongsToPharmacy(
-  //       dto.supplierId,
-  //       pharmacyId,
-  //       tx,
-  //     );
-
-  //     // 2. verify all pharmacyDrugIds belong to pharmacy
-  //     await this.assertPharmacyDrugsBelongToPharmacy(
-  //       dto.items.map((i) => i.pharmacyDrugId),
-  //       pharmacyId,
-  //       tx,
-  //     );
-
-  //     // 3. compute amounts
-  //     const computedItems = dto.items.map((it) => {
-  //       const qty = Number(it.quantity);
-  //       const netUnitPrice = Number(it.netUnitPrice);
-  //       const totalPrice = Number((qty * netUnitPrice).toFixed(2));
-  //       return { ...it, quantity: qty, netUnitPrice, totalPrice };
-  //     });
-
-  //     const subtotal = computedItems.reduce((s, it) => s + it.totalPrice, 0);
-  //     const discount = dto.discount ? Number(dto.discount) : 0;
-  //     const totalPrice = Number((subtotal - discount).toFixed(2));
-
-  //     // invoice date
-  //     const invoiceDate = dto.invoiceDate
-  //       ? new Date(dto.invoiceDate)
-  //       : new Date();
-
-  //     // 4. create supplierInvoice with nested items
-  //     const created = await tx.supplierInvoice.create({
-  //       data: {
-  //         supplierId: dto.supplierId,
-  //         invoiceNumber: dto.invoiceNumber ?? undefined,
-  //         invoiceDate,
-  //         subtotal,
-  //         discount,
-  //         totalPrice,
-  //         notes: dto.notes ?? undefined,
-  //         items: {
-  //           create: computedItems.map((it) => ({
-  //             pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
-  //             quantity: it.quantity,
-  //             netUnitPrice: it.netUnitPrice,
-  //             totalPrice: it.totalPrice,
-  //             notes: it.notes ?? undefined,
-  //           })),
-  //         },
-  //       },
-  //       include: { items: true },
-  //     });
-
-  //     // return created;
-
-  //     return tx.supplierInvoice.create({
-  //       data: {
-  //         supplierId: dto.supplierId,
-  //         invoiceNumber: dto.invoiceNumber ?? undefined,
-  //         invoiceDate,
-  //         subtotal,
-  //         discount,
-  //         totalPrice,
-  //         notes: dto.notes ?? undefined,
-  //         status: 'PENDING',
-  //         items: {
-  //           create: computedItems.map((it) => ({
-  //             pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
-  //             quantity: it.quantity,
-  //             netUnitPrice: it.netUnitPrice,
-  //             totalPrice: it.totalPrice,
-  //             notes: it.notes ?? undefined,
-  //           })),
-  //         },
-  //       },
-  //       include: { items: true },
-  //     });
-  //   });
-  // }
 
   async create(pharmacyId: number, dto: CreateSupplierInvoiceDto) {
     if (!Array.isArray(dto.items) || dto.items.length === 0) {
@@ -146,7 +59,7 @@ export class SupplierInvoiceService {
           discount,
           totalPrice,
           notes: dto.notes ?? undefined,
-          status: 'PENDING',
+          status: SupplierInvoiceStatus.PENDING,
           items: {
             create: computedItems.map((it) => ({
               pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
@@ -197,6 +110,111 @@ export class SupplierInvoiceService {
       });
     });
   }
+
+  // async create(pharmacyId: number, dto: CreateSupplierInvoiceDto) {
+  //   if (!Array.isArray(dto.items) || dto.items.length === 0) {
+  //     throw new BadRequestException('items must be a non-empty array');
+  //   }
+
+  //   return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  //     await this.assertSupplierBelongsToPharmacy(
+  //       dto.supplierId,
+  //       pharmacyId,
+  //       tx,
+  //     );
+
+  //     await this.assertPharmacyDrugsBelongToPharmacy(
+  //       dto.items.map((item) => item.pharmacyDrugId),
+  //       pharmacyId,
+  //       tx,
+  //     );
+
+  //     const computedItems = dto.items.map((item) => {
+  //       const quantity = Number(item.quantity);
+  //       const netUnitPrice = Number(item.netUnitPrice);
+  //       const totalPrice = Number((quantity * netUnitPrice).toFixed(2));
+
+  //       if (quantity <= 0) {
+  //         throw new BadRequestException(
+  //           `quantity must be greater than 0 for pharmacyDrugId ${item.pharmacyDrugId}`,
+  //         );
+  //       }
+
+  //       if (netUnitPrice < 0) {
+  //         throw new BadRequestException(
+  //           `netUnitPrice must not be negative for pharmacyDrugId ${item.pharmacyDrugId}`,
+  //         );
+  //       }
+
+  //       return {
+  //         pharmacyDrugId: item.pharmacyDrugId,
+  //         quantity,
+  //         netUnitPrice,
+  //         totalPrice,
+  //         notes: item.notes,
+  //       };
+  //     });
+
+  //     const subtotal = computedItems.reduce(
+  //       (sum, item) => sum + item.totalPrice,
+  //       0,
+  //     );
+
+  //     const discount = dto.discount ? Number(dto.discount) : 0;
+
+  //     if (discount < 0) {
+  //       throw new BadRequestException('discount must not be negative');
+  //     }
+
+  //     if (discount > subtotal) {
+  //       throw new BadRequestException(
+  //         'discount must not be greater than subtotal',
+  //       );
+  //     }
+
+  //     const totalPrice = Number((subtotal - discount).toFixed(2));
+
+  //     const invoiceDate = dto.invoiceDate
+  //       ? new Date(dto.invoiceDate)
+  //       : new Date();
+
+  //     return tx.supplierInvoice.create({
+  //       data: {
+  //         supplierId: dto.supplierId,
+  //         invoiceNumber: dto.invoiceNumber ?? undefined,
+  //         invoiceDate,
+  //         subtotal,
+  //         discount,
+  //         totalPrice,
+  //         notes: dto.notes ?? undefined,
+  //         status: SupplierInvoiceStatus.PENDING,
+
+  //         items: {
+  //           create: computedItems.map((item) => ({
+  //             pharmacyDrug: {
+  //               connect: {
+  //                 pharmacyDrugId: item.pharmacyDrugId,
+  //               },
+  //             },
+  //             quantity: item.quantity,
+  //             netUnitPrice: item.netUnitPrice,
+  //             totalPrice: item.totalPrice,
+  //             notes: item.notes ?? undefined,
+  //           })),
+  //         },
+  //       },
+  //       include: {
+  //         supplier: true,
+  //         items: {
+  //           include: {
+  //             pharmacyDrug: true,
+  //             batches: true,
+  //           },
+  //         },
+  //       },
+  //     });
+  //   });
+  // }
 
   private async assertSupplierBelongsToPharmacy(
     supplierId: number,

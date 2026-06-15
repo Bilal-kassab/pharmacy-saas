@@ -16,6 +16,8 @@ import { CurrentPharmacy } from '../../common/decorators/current-pharmacy.decora
 import { GetCustomerRequestsDto } from './dto/get-customer-request.dto';
 import { Auth } from '../../iam/authentication/decorators/auth.decorator';
 import { AuthType } from '../../iam/authentication/enums/auth-type.enum';
+import { Roles } from '../../iam/authorization/decorators/roles.decorator';
+import { AccountType } from '../../generated/prisma/enums';
 
 @Controller('customer-request')
 export class CustomerRequestController {
@@ -23,6 +25,7 @@ export class CustomerRequestController {
     private readonly customerRequestService: CustomerRequestService,
   ) {}
 
+  @Roles(AccountType.PHARMACY)
   @Post('create')
   create(
     @CurrentPharmacy() pharmacyId: number,
