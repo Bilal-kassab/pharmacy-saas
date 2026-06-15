@@ -8,6 +8,7 @@ import {
   Delete,
   Req,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { PurchaseOrderService } from './purchase-order.service';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
@@ -43,7 +44,14 @@ export class PurchaseOrderController {
   ) {
     return this.purchaseOrderService.findAll(pharmacyId, filters);
   }
-  
+
+  @Get(':id')
+  findOne(
+    @CurrentPharmacy() pharmacyId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.purchaseOrderService.findOne(pharmacyId, id);
+  }
   @Get('test')
   test(@Req() req: RequestWithUser) {
     return {

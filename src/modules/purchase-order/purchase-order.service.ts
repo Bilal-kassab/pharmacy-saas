@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreatePurchaseOrderDto } from './dto/create-purchase-order.dto';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto';
 import { CreatePurchaseOrderItemDto } from '../purchase-order-item/dto/create-purchase-order-item.dto';
@@ -11,27 +11,12 @@ export class PurchaseOrderService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(pharmacyId: number, dto: CreatePurchaseOrderDto) {
-    // return this.prisma.purchaseOrder.create({
-    //   data: {
-    //     pharmacyId,
-    //     supplierId: dto.supplierId,
-    //     notes: dto.notes,
-
-    //     items: {
-    //       create: dto.items.map((item) => ({
-    //         pharmacyDrugId: item.pharmacyDrugId,
-    //         orderedQuantityBoxes: item.orderedQuantityBoxes,
-    //         notes: item.notes,
-    //       })),
-    //     },
-    //   },
-
-    //   include: {
-    //     items: true,
-    //   },
-    // });
-
-    await this.prisma.$transaction(async (tx) => {
+    if (!dto.items?.length) {
+      throw new BadRequestException(
+        'Purchase order must contain at least one item',
+      );
+    }
+    return await this.prisma.$transaction(async (tx) => {
       await Promise.all([
         this.assertSupplierBelongsToPharmacy(dto.supplierId, pharmacyId, tx),
         this.assertDrugsBelongToPharmacy(dto.items, pharmacyId, tx),
@@ -124,5 +109,29 @@ export class PurchaseOrderService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async findOne(pharmacyId: number, id: number) {
+    const po = await this.prisma.purchaseOrder.findFirst({
+      where: {
+        purchaseOrderId: id,
+        pharmacyId,
+      },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            pharmacyDrug: {
+              include: {
+                drug: true, // اختياري: تفاصيل الـ drug إذا احتجت
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!po) throw new NotFoundException('Purchase order not found');
+    return po;
   }
 }

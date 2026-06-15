@@ -23,8 +23,8 @@ import { AccountType } from '../../generated/prisma/enums';
 export class PharmacyController {
   constructor(private readonly pharmacyService: PharmacyService) {}
 
-  // @Auth(AuthType.None)
-  @Roles(AccountType.ADMIN)
+  @Auth(AuthType.None)
+  // @Roles(AccountType.ADMIN)
   @Post('create')
   @ResponseMessage('Pharmacy account created successfully')
   @ApiOperation({

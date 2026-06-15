@@ -85,6 +85,52 @@ enum SupplierInvoiceStatus {
   PENDING
   APPROVED
   REJECTED
+  /// should change to 
+  //  DRAFT
+  // POSTED
+  // STOCKED
+  // CANCELLED
+
+  // DRAFT    => فاتورة مسجلة لكن لم تُفرد بعد
+  // POSTED   => فاتورة مؤكدة ماليًا
+  // STOCKED  => تم إدخال دفعاتها للمخزون
+  // CANCELLED => ملغاة
+
+  // ===>
+  //   enum SupplierInvoiceStatus {
+  //   PENDING
+  //   PARTIALLY_STOCKED
+  //   STOCKED
+  //   CANCELLED
+  // }
+
+  // PENDING
+  // => مسجلة لكن لم تُفرد على المخزون
+
+  // PARTIALLY_STOCKED
+  // => تم إدخال جزء من دفعاتها فقط
+
+  // STOCKED
+  // => تم إدخال كل دفعاتها إلى المخزون
+
+  // CANCELLED
+  // => ملغاة
+}
+
+enum CustomerRequestStatus {
+  PENDING
+  PARTIALLY_FULFILLED
+  READY_FOR_PICKUP
+  COMPLETED
+  CANCELLED
+}
+
+enum CustomerRequestItemStatus {
+  PENDING
+  ORDERED
+  RESERVED
+  FULFILLED
+  CANCELLED
 }
 
 // ─── USER ACCOUNT ─────────────────────────────────────────────────────────────
@@ -145,11 +191,13 @@ model Pharmacy {
   status              PharmacyStatus @default(PENDING)
   openingDate         DateTime?      @map("opening_date") @db.Date
 
-  credential     PharmacyCredential?
-  documents      PharmacyDocument[]
-  pharmacyDrugs  PharmacyDrug[]
-  suppliers      Supplier[]
-  purchaseOrders PurchaseOrder[]
+  credential PharmacyCredential?
+  documents  PharmacyDocument[]
+
+  pharmacyDrugs    PharmacyDrug[]
+  suppliers        Supplier[]
+  purchaseOrders   PurchaseOrder[]
+  CustomerRequests CustomerRequest[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt      @map("updated_at")
@@ -397,6 +445,7 @@ model PharmacyDrug {
   purchaseOrderItems   PurchaseOrderItem[]
   supplierInvoiceItems SupplierInvoiceItem[]
   drugLocations        DrugLocation[]
+  CustomerRequestItems CustomerRequestItem[]
 
   @@unique([pharmacyId, drugId])  // a pharmacy can't add the same drug twice
 
@@ -464,9 +513,9 @@ model Supplier {
 
   invoices SupplierInvoice[]
 
-  createdAt      DateTime        @default(now()) @map("created_at")
-  updatedAt      DateTime        @updatedAt @map("updated_at")
-  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
   purchaseOrders PurchaseOrder[]
 
   @@map("suppliers")
@@ -571,4 +620,56 @@ model PurchaseOrderItem {
   updatedAt DateTime @updatedAt      @map("updated_at")
 
   @@map("purchase_order_items")
+}
+
+// ─── CUSTOMER REQUEST ─────────────────────────────────────────────────────────
+model CustomerRequest {
+  customerRequestId Int @id @default(autoincrement())
+
+  pharmacyId Int
+  pharmacy   Pharmacy @relation(fields: [pharmacyId], references: [pharmacyId])
+
+  customerName  String
+  customerPhone String?
+  notes         String?
+  status        CustomerRequestStatus @default(PENDING)
+
+  requestedAt DateTime  @default(now())
+  completedAt DateTime?
+  cancelledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items CustomerRequestItem[]
+
+  @@index([pharmacyId])
+  @@index([status])
+  @@index([customerPhone])
+}
+
+// ─── CUSTOMER REQUEST ITEM ─────────────────────────────────────────────────
+model CustomerRequestItem {
+  customerRequestItemId Int @id @default(autoincrement())
+
+  customerRequestId Int
+  customerRequest   CustomerRequest @relation(fields: [customerRequestId], references: [customerRequestId], onDelete: Cascade)
+
+  pharmacyDrugId Int
+  pharmacyDrug   PharmacyDrug @relation(fields: [pharmacyDrugId], references: [pharmacyDrugId], onDelete: Restrict)
+
+  requestedQuantity Int
+
+  fulfilledQuantity Int @default(0)
+
+  status CustomerRequestItemStatus @default(PENDING)
+
+  notes String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerRequestId])
+  @@index([pharmacyDrugId])
+  @@index([status])
 }

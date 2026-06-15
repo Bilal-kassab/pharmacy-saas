@@ -1,82 +1,202 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 import { UpdateSupplierInvoiceDto } from './dto/update-supplier-invoice.dto';
 import { Prisma } from '../../generated/prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SupplierInvoiceFilterDto } from './dto/create-supplier-invoice-filter.dto';
 
 @Injectable()
 export class SupplierInvoiceService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return `This action returns all supplierInvoice`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} supplierInvoice`;
-  }
-
-  update(id: number, updateSupplierInvoiceDto: UpdateSupplierInvoiceDto) {
-    return `This action updates a #${id} supplierInvoice`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} supplierInvoice`;
-  }
-
   // async create(pharmacyId: number, dto: CreateSupplierInvoiceDto) {
-  //   if (!dto.items?.length) {
-  //     throw new BadRequestException('items required');
+  //   if (!Array.isArray(dto.items) || dto.items.length === 0) {
+  //     throw new BadRequestException('items must be a non-empty array');
   //   }
 
   //   return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+  //     // 1. verify supplier belongs to pharmacy
   //     await this.assertSupplierBelongsToPharmacy(
   //       dto.supplierId,
   //       pharmacyId,
   //       tx,
   //     );
-  //     await this.assertPharmacyDrugsBelongToPharmacy(dto.items, pharmacyId, tx);
 
-  //     const totalAmount = dto.items.reduce(
-  //       (s, it) => s + it.unitPrice * it.quantityBoxes,
-  //       0,
+  //     // 2. verify all pharmacyDrugIds belong to pharmacy
+  //     await this.assertPharmacyDrugsBelongToPharmacy(
+  //       dto.items.map((i) => i.pharmacyDrugId),
+  //       pharmacyId,
+  //       tx,
   //     );
 
+  //     // 3. compute amounts
+  //     const computedItems = dto.items.map((it) => {
+  //       const qty = Number(it.quantity);
+  //       const netUnitPrice = Number(it.netUnitPrice);
+  //       const totalPrice = Number((qty * netUnitPrice).toFixed(2));
+  //       return { ...it, quantity: qty, netUnitPrice, totalPrice };
+  //     });
+
+  //     const subtotal = computedItems.reduce((s, it) => s + it.totalPrice, 0);
+  //     const discount = dto.discount ? Number(dto.discount) : 0;
+  //     const totalPrice = Number((subtotal - discount).toFixed(2));
+
+  //     // invoice date
+  //     const invoiceDate = dto.invoiceDate
+  //       ? new Date(dto.invoiceDate)
+  //       : new Date();
+
+  //     // 4. create supplierInvoice with nested items
   //     const created = await tx.supplierInvoice.create({
   //       data: {
-  //         pharmacyId,
   //         supplierId: dto.supplierId,
   //         invoiceNumber: dto.invoiceNumber ?? undefined,
-  //         invoiceDate: dto.invoiceDate ? new Date(dto.invoiceDate) : new Date(),
-  //         notes: dto.notes,
-  //         totalAmount,
+  //         invoiceDate,
+  //         subtotal,
+  //         discount,
+  //         totalPrice,
+  //         notes: dto.notes ?? undefined,
   //         items: {
-  //           create: dto.items.map((it) => ({
+  //           create: computedItems.map((it) => ({
   //             pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
-  //             orderedQuantityBoxes: it.quantityBoxes,
-  //             unitPrice: it.unitPrice,
-  //             netAmount: it.unitPrice * it.quantityBoxes,
-  //             notes: it.notes,
-  //             batchNumber: it.batchNumber,
-  //             expiryDate: it.expiryDate ? new Date(it.expiryDate) : undefined,
+  //             quantity: it.quantity,
+  //             netUnitPrice: it.netUnitPrice,
+  //             totalPrice: it.totalPrice,
+  //             notes: it.notes ?? undefined,
   //           })),
   //         },
   //       },
   //       include: { items: true },
   //     });
 
-  //     // Optional: create Batches or StockMovements per item here using tx.batch.create or tx.stockMovement.create
-  //     // Example (pseudocode):
-  //     // for (const it of dto.items) {
-  //     //   if (it.batchNumber) {
-  //     //     await tx.batch.create({ data: { pharmacyDrugId: it.pharmacyDrugId, batchNumber: it.batchNumber, expiryDate: it.expiryDate ? new Date(it.expiryDate) : undefined, quantityBoxes: it.quantityBoxes, supplierInvoiceId: created.supplierInvoiceId } });
-  //     //     // optionally update inventory
-  //     //   }
-  //     // }
+  //     // return created;
 
-  //     return created;
+  //     return tx.supplierInvoice.create({
+  //       data: {
+  //         supplierId: dto.supplierId,
+  //         invoiceNumber: dto.invoiceNumber ?? undefined,
+  //         invoiceDate,
+  //         subtotal,
+  //         discount,
+  //         totalPrice,
+  //         notes: dto.notes ?? undefined,
+  //         status: 'PENDING',
+  //         items: {
+  //           create: computedItems.map((it) => ({
+  //             pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
+  //             quantity: it.quantity,
+  //             netUnitPrice: it.netUnitPrice,
+  //             totalPrice: it.totalPrice,
+  //             notes: it.notes ?? undefined,
+  //           })),
+  //         },
+  //       },
+  //       include: { items: true },
+  //     });
   //   });
   // }
+
+  async create(pharmacyId: number, dto: CreateSupplierInvoiceDto) {
+    if (!Array.isArray(dto.items) || dto.items.length === 0) {
+      throw new BadRequestException('items must be a non-empty array');
+    }
+
+    return this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // 1. verify supplier belongs to pharmacy
+      await this.assertSupplierBelongsToPharmacy(
+        dto.supplierId,
+        pharmacyId,
+        tx,
+      );
+
+      // 2. verify all pharmacyDrugIds belong to pharmacy
+      await this.assertPharmacyDrugsBelongToPharmacy(
+        dto.items.map((i) => i.pharmacyDrugId),
+        pharmacyId,
+        tx,
+      );
+
+      // 3. compute amounts
+      const computedItems = dto.items.map((it) => {
+        const qty = Number(it.quantity);
+        const netUnitPrice = Number(it.netUnitPrice);
+        const totalPrice = Number((qty * netUnitPrice).toFixed(2));
+        return { ...it, quantity: qty, netUnitPrice, totalPrice };
+      });
+
+      const subtotal = computedItems.reduce((s, it) => s + it.totalPrice, 0);
+      const discount = dto.discount ? Number(dto.discount) : 0;
+      const totalPrice = Number((subtotal - discount).toFixed(2));
+
+      const invoiceDate = dto.invoiceDate
+        ? new Date(dto.invoiceDate)
+        : new Date();
+
+      // 4. create supplierInvoice with nested items
+      const created = await tx.supplierInvoice.create({
+        data: {
+          supplierId: dto.supplierId,
+          invoiceNumber: dto.invoiceNumber ?? undefined,
+          invoiceDate,
+          subtotal,
+          discount,
+          totalPrice,
+          notes: dto.notes ?? undefined,
+          status: 'PENDING',
+          items: {
+            create: computedItems.map((it) => ({
+              pharmacyDrug: { connect: { pharmacyDrugId: it.pharmacyDrugId } },
+              quantity: it.quantity,
+              netUnitPrice: it.netUnitPrice,
+              totalPrice: it.totalPrice,
+              notes: it.notes ?? undefined,
+            })),
+          },
+        },
+        include: { items: true },
+      });
+
+      // 5. Create Batches if they were provided (Scenario 1: Immedite Batches)
+      const batchesToCreate: Prisma.BatchCreateManyInput[] = [];
+
+      for (let i = 0; i < computedItems.length; i++) {
+        const itemInput = computedItems[i];
+        const createdItem = created.items[i];
+
+        if (itemInput.batches && itemInput.batches.length > 0) {
+          for (const batch of itemInput.batches) {
+            batchesToCreate.push({
+              pharmacyDrugId: itemInput.pharmacyDrugId,
+              supplierInvoiceItemId: createdItem.supplierInvoiceItemId,
+              expiryDate: batch.expiryDate ? new Date(batch.expiryDate) : null,
+              initialQuantity: batch.initialQuantity ?? itemInput.quantity,
+              receivedDate: invoiceDate,
+              // batchNumber: batch.batchNumber, // Add this if you have it in Batch schema
+            });
+          }
+        }
+      }
+
+      if (batchesToCreate.length > 0) {
+        await tx.batch.createMany({
+          data: batchesToCreate,
+        });
+
+        // Optionally update the invoice status to APPROVED or PARTIALLY_RECEIVED here
+        // if all quantities mathced what was ordered.
+      }
+
+      // Return the fully populated invoice
+      return tx.supplierInvoice.findUnique({
+        where: { supplierInvoiceId: created.supplierInvoiceId },
+        include: { items: { include: { batches: true } } },
+      });
+    });
+  }
 
   private async assertSupplierBelongsToPharmacy(
     supplierId: number,
@@ -92,20 +212,90 @@ export class SupplierInvoiceService {
   }
 
   private async assertPharmacyDrugsBelongToPharmacy(
-    items: { pharmacyDrugId: number }[],
+    pharmacyDrugIds: number[],
     pharmacyId: number,
     tx: Prisma.TransactionClient,
   ) {
-    const ids = Array.from(new Set(items.map((i) => i.pharmacyDrugId)));
+    const ids = Array.from(new Set(pharmacyDrugIds));
     const found = await tx.pharmacyDrug.findMany({
       where: { pharmacyDrugId: { in: ids }, pharmacyId },
       select: { pharmacyDrugId: true },
     });
     if (found.length !== ids.length) {
       throw new BadRequestException(
-        'One or more pharmacyDrugId are invalid or not owned by this pharmacy',
+        'One or more pharmacyDrugId values are invalid for this pharmacy',
       );
     }
     return found;
+  }
+
+  async findAll(pharmacyId: number, filters: SupplierInvoiceFilterDto) {
+    const {
+      supplierId,
+      status,
+      paymentStatus,
+      invoiceNumber,
+      fromDate,
+      toDate,
+    } = filters;
+
+    return this.prisma.supplierInvoice.findMany({
+      where: {
+        supplier: {
+          pharmacyId,
+          ...(supplierId !== undefined ? { supplierId } : {}),
+        },
+        ...(status !== undefined ? { status } : {}),
+        ...(paymentStatus !== undefined ? { paymentStatus } : {}),
+        ...(invoiceNumber
+          ? { invoiceNumber: { contains: invoiceNumber, mode: 'insensitive' } }
+          : {}),
+        ...(fromDate || toDate
+          ? {
+              invoiceDate: {
+                ...(fromDate ? { gte: new Date(fromDate) } : {}),
+                ...(toDate ? { lte: new Date(toDate) } : {}),
+              },
+            }
+          : {}),
+      },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            pharmacyDrug: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findOne(pharmacyId: number, id: number) {
+    const invoice = await this.prisma.supplierInvoice.findFirst({
+      where: {
+        supplierInvoiceId: id,
+        supplier: {
+          pharmacyId,
+        },
+      },
+      include: {
+        supplier: true,
+        items: {
+          include: {
+            pharmacyDrug: true,
+            batches: true,
+          },
+        },
+      },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException('Supplier invoice not found');
+    }
+
+    return invoice;
   }
 }

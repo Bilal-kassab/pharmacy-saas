@@ -1,35 +1,65 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { SupplierInvoiceService } from './supplier-invoice.service';
 import { CreateSupplierInvoiceDto } from './dto/create-supplier-invoice.dto';
 import { UpdateSupplierInvoiceDto } from './dto/update-supplier-invoice.dto';
 import { CurrentPharmacy } from '../../common/decorators/current-pharmacy.decorator';
+import { Roles } from '../../iam/authorization/decorators/roles.decorator';
+import { AccountType } from '../../generated/prisma/enums';
+import { SupplierInvoiceFilterDto } from './dto/create-supplier-invoice-filter.dto';
+import { BatchService } from '../batch/batch.service';
+import { AddBatchesToSupplierInvoiceDto } from '../batch/dto/add-batches-to-supplier-invoice.dto';
+import { Auth } from '../../iam/authentication/decorators/auth.decorator';
+import { AuthType } from '../../iam/authentication/enums/auth-type.enum';
 
 @Controller('supplier-invoice')
 export class SupplierInvoiceController {
-  constructor(private readonly supplierInvoiceService: SupplierInvoiceService) {}
+  constructor(
+    private readonly supplierInvoiceService: SupplierInvoiceService,
+    private readonly batchService: BatchService,
+  ) {}
 
+  @Post('create')
+  create(
+    @CurrentPharmacy() pharmacyId: number,
+    @Body() dto: CreateSupplierInvoiceDto,
+  ) {
+    return this.supplierInvoiceService.create(pharmacyId, dto);
+  }
+
+  @Roles(AccountType.PHARMACY)
   @Get()
-  findAll() {
-    return this.supplierInvoiceService.findAll();
+  findAll(
+    @CurrentPharmacy() pharmacyId: number,
+    @Query() filters: SupplierInvoiceFilterDto,
+  ) {
+    return this.supplierInvoiceService.findAll(pharmacyId, filters);
   }
 
+  @Roles(AccountType.PHARMACY)
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.supplierInvoiceService.findOne(+id);
+  findOne(
+    @CurrentPharmacy() pharmacyId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.supplierInvoiceService.findOne(pharmacyId, id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateSupplierInvoiceDto: UpdateSupplierInvoiceDto) {
-    return this.supplierInvoiceService.update(+id, updateSupplierInvoiceDto);
+  @Post(':id/batches')
+  addBatchesToInvoice(
+    @CurrentPharmacy() pharmacyId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AddBatchesToSupplierInvoiceDto,
+  ) {
+    return this.batchService.addBatchesToInvoice(pharmacyId, id, dto);
   }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.supplierInvoiceService.remove(+id);
-  }
-
-  // @Post('create')
-  // create(@CurrentPharmacy() pharmacyId: number, @Body() dto: CreateSupplierInvoiceDto) {
-  //   return this.supplierInvoiceService.create(pharmacyId, dto);
-  // }
 }

@@ -1,7 +1,6 @@
-// CreateSupplierInvoiceDto
 import { Type } from 'class-transformer';
-import { IsInt, Min, IsOptional, IsString, IsArray, ValidateNested, IsDateString } from 'class-validator';
-import { CreateSupplierInvoiceItemDto } from '../../supplier-invoice-item/dto/create-supplier-invoice-item.dto'; 
+import { IsInt, Min, IsOptional, IsString, IsArray, ValidateNested, IsDateString, IsNumber } from 'class-validator';
+import { CreateSupplierInvoiceItemDto } from '../../supplier-invoice-item/dto/create-supplier-invoice-item.dto';
 
 export class CreateSupplierInvoiceDto {
   @IsInt()
@@ -14,7 +13,13 @@ export class CreateSupplierInvoiceDto {
 
   @IsOptional()
   @IsDateString()
-  invoiceDate?: string;
+  invoiceDate?: string; // ISO date string
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  discount?: number;
 
   @IsOptional()
   @IsString()

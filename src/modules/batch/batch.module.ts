@@ -3,6 +3,7 @@ import { BatchService } from './batch.service';
 import { BatchController } from './batch.controller';
 
 @Module({
+  exports: [BatchService],
   controllers: [BatchController],
   providers: [BatchService],
 })

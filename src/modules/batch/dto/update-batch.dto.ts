@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/swagger';
-import { CreateBatchDto } from './create-batch.dto';
+import { CreateSupplierInvoiceItemBatchDto } from './create-batch.dto';
 
-export class UpdateBatchDto extends PartialType(CreateBatchDto) {}
+export class UpdateBatchDto extends PartialType(CreateSupplierInvoiceItemBatchDto) {}

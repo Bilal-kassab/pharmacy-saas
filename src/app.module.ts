@@ -19,6 +19,8 @@ import { SupplierModule } from './modules/supplier/supplier.module';
 import { SupplierInvoiceModule } from './modules/supplier-invoice/supplier-invoice.module';
 import { SupplierInvoiceItemModule } from './modules/supplier-invoice-item/supplier-invoice-item.module';
 import { BatchModule } from './modules/batch/batch.module';
+import { CustomerRequestModule } from './modules/customer-request/customer-request.module';
+import { CustomerRequestItemModule } from './modules/customer-request-item/customer-request-item.module';
 import { PharmacyDrugsModule } from './modules/pharmacy-drug/pharmacy-drugs.module';
 
 @Module({
@@ -42,6 +44,8 @@ import { PharmacyDrugsModule } from './modules/pharmacy-drug/pharmacy-drugs.modu
     SupplierInvoiceModule,
     SupplierInvoiceItemModule,
     BatchModule,
+    CustomerRequestModule,
+    CustomerRequestItemModule,
     PharmacyDrugsModule,
   ],
   providers: [
